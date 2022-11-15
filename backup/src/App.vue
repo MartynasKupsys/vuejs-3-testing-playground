@@ -10,10 +10,10 @@
             :multiDates="true"
             :enableTimePicker="false"
             :modelValue="selectedDates" @update:modelValue="selectDate($event)"
-            :disabledDates="(date) => date < this.currentYearMonthDate"
             
         >
         </DatepickerComponent>
+        <!-- :disabledDates="(date) => date < this.currentYearMonthDate" -->
         <!-- :modelValue="selectedDates" @update:modelValue="selectDate($event)" -->
         <!-- v-model="selectedDates" -->
     </div>
@@ -39,7 +39,7 @@
         <template v-if="selectedPeriodType === 'week'">
             <div>
                 <div>Reapeat on:</div>
-                <template v-for="day in weekDays" :key="day.id">
+                <template v-for="day in weekDays" :key="day.id + 1">
                     <div>
                         <label :for="day">{{ day.name }}</label>
                         <input
@@ -64,6 +64,13 @@
             v-model="endDate"
         >
         </DatepickerComponent>
+
+        <button
+        type="submit"
+        @click="repeatMultipleDays(this.selectedDates, this.selectedPeriodType, this.selectedDays)"
+    >
+        Repeat MULTIPLE <span>{{ period }}</span> Selected <span>{{ selectedPeriodType }}</span>
+    </button>
     </div>
 
     <template v-for="date in selectedDates" :key="date">
@@ -74,18 +81,6 @@
         </pre>
 
     </template>
-
-    <button
-        type="submit"
-        @click="
-            repeatMultipleDays(
-                this.selectedDates,
-                this.selectedPeriodType
-            )
-        "
-    >
-        Repeat MULTIPLE <span>{{ period }}</span> Selected <span>{{ selectedPeriodType }}</span>
-    </button>
 </template>
 
 <script>
@@ -101,6 +96,7 @@ export default {
             selectedPeriodType: 'day',
             selectedDays: [],
             selectedDates: null,
+            primarySelectedDates: [],
             endDate: null,
 
             currentYearMonthDate: new Date(),
@@ -167,28 +163,83 @@ export default {
         }
     },
 
+    watch: {
+        selectedDates: {
+            handler(newVal, oldVal) {
+                console.log('new: ', newVal);
+                console.log('old: ', oldVal);
+
+                if (oldVal === null) {
+                    this.primarySelectedDates = [...newVal];
+                } else {
+                    this.primarySelectedDates = [...oldVal];
+                }
+
+            }
+        }
+    },
+
     methods: {
+
+        plusMonth(date, index, period) {
+            let m = new Date(date);
+            console.log('index: ', index);
+            m.setMonth(m.getMonth() + 1 * index * period);
+
+            console.log(m);
+
+            return m.toISOString();
+        },
+
+        plusYear(date, index, period) {
+            // let now = new Date()
+            // now.setFullYear(now.getFullYear() + 1)
+
+            // console.log('Next Year: ', new Date(now))
+            let y = new Date(date);
+            console.log('index: ', index);
+            y.setFullYear(y.getFullYear() + 1 * index * period);
+
+            console.log(y);
+
+            return y.toISOString();
+        },
 
         daysInMonth(month, year) {
             return new Date(year, month, 0).getDate()
         },
+
+        getDatesOfSelectedDays(selectedDays, weekDays) {
+
+            const needDays = [];
+
+            for (const selectedDay of selectedDays) {
+                needDays.push(weekDays.find(el => el.id === selectedDay).date.toISOString());
+            }
+
+            return needDays;
+        },
+
         selectDate(event) {
-            console.log(event);
             if (event !== null) {
 
+                console.log('event : ', event);
+
+                // reset dates
                 this.selectedDates = [];
+                // this.primarySelectedDates = [];
+
+                // push new dates
                 this.selectedDates.push(...event);
+                // this.primarySelectedDates.push(...event);
+                this.selectedDates = [...this.selectedDates.sort()];
 
-                for (const date of this.selectedDates) {
-                    this.selectedDays.push(new Date(date).getDay());
-                }
-                
+                this.selectedDays = this.selectedDates.map(date => new Date(date).getDay());
+                this.selectedDays = [...new Set(this.selectedDays)];
 
-                // init week days with start dates
+                // init week days with first selected dates
                 for (let i = 0; i < this.daysInWeek; i++) {
-                    console.log(new Date(new Date(new Date(this.selectedDates[0]).getTime() + i * 86400000).toDateString()));
-                    console.log(new Date(new Date(new Date(this.selectedDates[0]).getTime() + i * 86400000).toDateString()).getDay());
-
+                    
                     for (const days of this.weekDays) {
                         if (days.id === new Date(new Date(new Date(this.selectedDates[0]).getTime() + i * 86400000).toDateString()).getDay()) {
                             days.date = new Date(new Date(new Date(this.selectedDates[0]).getTime() + i * 86400000).toDateString());
@@ -218,32 +269,31 @@ export default {
             let start = new Date(new Date(date).toDateString());
             // custom end date
             let end = new Date(new Date(endDate).toDateString());
-            //current month end by default
-            let thisMonthEnd = new Date(
+            // default end date month
+            let defaultEnd = new Date(
                 new Date(
                     this.currentYear,
                     this.currentMonth + 1,
-                    0
+                    this.currentDate
                 ).toDateString()
             );
 
-            newDates = [JSON.parse(JSON.stringify(new Date(new Date(date).toDateString())))];
-
+            // newDates = [JSON.parse(JSON.stringify(new Date(new Date(date).toDateString())))];
             if (endDate !== null) {
                 // timestamp
                 deadline = Math.ceil(end - start) / this.dayInMiliseconds;
                 newEnd = end; 
 
             } else {
-                deadline = Math.ceil(thisMonthEnd - start) / this.dayInMiliseconds;
-                newEnd = thisMonthEnd;
+                deadline = Math.ceil(defaultEnd - start) / this.dayInMiliseconds;
+                newEnd = defaultEnd;
             }
 
-                let intervals = Math.round(deadline / period);
+                const mainInterval = Math.round(deadline / period);
 
-                for (let i = 0; i <= intervals; i++) {
+                for (let i = 0; i <= mainInterval; i++) {
 
-                    const newDate = new Date(start.getTime() + (i+1) * this.dayInMiliseconds * multiplier * period);
+                    const newDate = new Date(start.getTime() + i * this.dayInMiliseconds * multiplier * period);
 
                     if (newDate <= newEnd.getTime()) {
                         // newDates = [...newDates, new Date(newDate).toISOString()];
@@ -257,22 +307,38 @@ export default {
 
         repeatWeekDays(period, date, endDate, multiplier) {
 
-            console.log('end: ', endDate);
+            const newDates = [];
+            let newEnd = 0;
+            let deadline = 0;
 
             let end = new Date(new Date(endDate).toDateString());
             let start = new Date(new Date(date).toDateString());
 
-            const newDates = [];
+            let defaultEnd = new Date(
+                new Date(
+                    this.currentYear,
+                    this.currentMonth + 3,
+                    this.currentDate - 1
+                ).toDateString()
+            );
 
-            let deadline = Math.ceil(end - start) / 86400000;
+            if (endDate !== null) {
+                // timestamp
+                deadline = Math.ceil(end - start) / this.dayInMiliseconds;
+                newEnd = end; 
+
+            } else {
+                deadline = Math.ceil(defaultEnd - start) / this.dayInMiliseconds;
+                newEnd = defaultEnd;
+            }
 
             const mainInterval = Math.round(deadline / (period * multiplier));
 
             for (let i = 0; i <= mainInterval; i++) {
 
-                let newDate = new Date(start.getTime() + i * 86400000 * multiplier * period);
+                let newDate = new Date(start.getTime() + i * this.dayInMiliseconds * multiplier * period);
             
-                if (newDate <= end.getTime()) {
+                if (newDate <= newEnd.getTime()) {
                     newDates.push(new Date(newDate).toISOString());
                 }
 
@@ -281,44 +347,124 @@ export default {
             return newDates;
         },
 
+        repeatMonthDays(period, date, endDate) {
+
+            const newDates = [];
+            let deadline = 0;
+            let end = new Date(new Date(endDate).toDateString());
+            let start = new Date(new Date(date).toDateString());
+            let defaultEnd = new Date(
+                new Date(
+                    this.currentYear + 1,
+                    this.currentMonth + 1,
+                    this.currentDate
+                ).toDateString()
+            );
+
+            if (!endDate) {
+                deadline = Math.ceil(defaultEnd.getMonth() - start.getMonth() + 12 * (defaultEnd.getFullYear() - start.getFullYear()));
+            } else {
+                deadline = Math.ceil(end.getMonth() - start.getMonth() + 12 * (end.getFullYear() - start.getFullYear()));
+            }
+
+            const mainInterval = Math.round(deadline / period);
+
+            for (let i = 0; i < mainInterval; i++) {
+                let newDate = this.plusMonth(date, i, period);
+
+                    newDates.push(newDate);
+            }
+
+            return newDates;
+        },
+
+        repeatYearDays(period, date, endDate) {
+            const newDates = [];
+            let deadline = 0;
+            let end = new Date(new Date(endDate).toDateString());
+            let start = new Date(new Date(date).toDateString());
+            let defaultEnd = new Date(
+                new Date(
+                    this.currentYear + 6,
+                    this.currentMonth + 1,
+                    this.currentDate
+                ).toDateString()
+            );
+
+            if (!endDate) {
+                deadline = Math.ceil(defaultEnd.getFullYear() - start.getFullYear());
+            } else {
+                deadline = Math.ceil(end.getFullYear() - start.getFullYear());
+            }
+
+            const mainInterval = Math.round(deadline / period);
+
+            for (let i = 0; i < mainInterval; i++) {
+                let newDate = this.plusYear(date, i, period);
+
+                    newDates.push(newDate);
+            }
+
+            return newDates;
+        },
+
 
         repeatMultipleDays(dates, selectedPeriodType, selectedDays) {
             const multipleDays = [];
+            const selectedDatesTemp = [];
             let multiplier = 0;
 
-            console.log(selectedDays)
+            console.log('selected days: ', selectedDays);
 
-            for (const date of dates) {
-                multipleDays.push(
-                    JSON.parse(
-                        JSON.stringify(new Date(new Date(date).toDateString()))
-                    )
-                )
+            if (!dates || !selectedDays.length) {
+                alert('Select your date!');
+                return;
             }
-            // Reset state of selected dates
-            this.selectedDates = [];
 
             switch (selectedPeriodType) {
                 case 'day':
-                        multiplier = 1;
-                        for (const date of multipleDays) {
-                            let tempArr = this.repeatDays(this.period, date, this.endDate, multiplier);
-                            this.selectedDates.push(...tempArr);
-                        }
-                    break;
+                    multiplier = 1;
+
+                    for (const date of dates) {
+                        let tempArr = this.repeatDays(this.period, date, this.endDate, multiplier);
+                        selectedDatesTemp.push(...tempArr);
+                    }
+
+                    this.selectedDates = [...new Set(selectedDatesTemp)];
+                break;
                         
                 case 'week':
-                        multiplier = 7;
-                        for (const date of multipleDays) {
-                            let tempArr = this.repeatWeekDays(this.period, date, this.endDate, multiplier);
-                            console.log('temp: ', tempArr);
-                            this.selectedDates.push(...tempArr);
-                        }
-                    break;
-                    
-                case 'month':
+                    multiplier = 7;
 
-                    break;
+                    multipleDays.push(...this.getDatesOfSelectedDays(this.selectedDays, this.weekDays));
+
+                    for (const date of multipleDays) {
+                        let tempArr = this.repeatWeekDays(this.period, date, this.endDate, multiplier);
+                        selectedDatesTemp.push(...tempArr);
+                    }
+
+                    this.selectedDates = [...new Set(selectedDatesTemp)];
+                break;
+                    
+                case 'month': 
+                    for (const date of dates) {
+                        let tempArr = this.repeatMonthDays(this.period, date, this.endDate);
+                        selectedDatesTemp.push(...tempArr);
+                        console.log('monthly temp: ', tempArr);
+                    } 
+
+                    this.selectedDates = [...new Set(selectedDatesTemp)];
+                break;
+
+                case 'year':
+
+                    for (const date of dates) {
+                        let tempArr = this.repeatYearDays(this.period, date, this.endDate);
+                        selectedDatesTemp.push(...tempArr); 
+                    }
+
+                    this.selectedDates = [...new Set(selectedDatesTemp)];
+                break;
 
                 default:
                     break;
