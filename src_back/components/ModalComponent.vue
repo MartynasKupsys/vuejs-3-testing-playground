@@ -22,7 +22,7 @@
     <!-- Custom-bootstrap modal container -->
   
     <template v-else-if="!isMainModal">
-        <div :id="id" class="modal-custom" :class="zIndexCustom">
+        <div :id="id" class="modal modal-custom" :class="zIndexCustom">
           <div class="modal-dialog modal-dialog-margin modal-md modal-lg modal-xl modal-dialog--open">
             <div class="modal-content modal-content-border-radius">
               <div class="modal-header image-modal-header">

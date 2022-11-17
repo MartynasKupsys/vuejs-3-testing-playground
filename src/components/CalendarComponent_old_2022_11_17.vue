@@ -38,10 +38,10 @@
                             :locale="locale"
                             inline
                             auto-apply
-                            :multi-dates="true"
+                            range
                             :enableTimePicker="false"
                             :modelValue="selectedDates" @update:modelValue="selectDate($event)"
-                            @internalModelChange="internalModelChange($event)">
+                            @internalModelChange="internalHandler($event)">
                         </DatepickerComponent>
                     <!-- </template> -->
                     
@@ -155,7 +155,6 @@ export default {
         openPredifinedModal: false,
         openCustomModal: false, 
 
-        // ====== main selected data ======
         selectedPredifinedOption: 'choose',
         locale: 'lt',
         period: 1,
@@ -163,9 +162,13 @@ export default {
         selectedDays: [],
         selectedDates: [],
         endDate: null,
-        // ================================
+        currentYearMonthDate: new Date(),
 
-        internalDates: [],
+        updatedSelect: false,
+
+        displaySelectedDates: [],
+        // oldSelectedDates: [],
+        multiDates: false,
         currentYear: new Date().getFullYear(),
         currentMonth: new Date().getMonth(),
         currentDate: new Date().getDate(),
@@ -224,19 +227,35 @@ export default {
             "November",
             "December"
         ],
-        // daysInMonths: []
+        daysInMonths: []
 
       };
     },
 
+    // watch: {
+    //     selectedDates: {
+    //         handler(newVal, oldVal) {
+    //             console.log('NEW VAL: ', newVal);
+    //             console.log('OLD VAL: ', oldVal);
+
+                
+    //             this.selectedDates = newVal;
+
+                
+    //             // if (newVal) {
+                    
+    //             // }
+    //             // this.updatedSelect = false;
+    //         },
+    //         deep: true
+    //     }
+    // },
+
     methods: {
-
-        internalModelChange(event) {
-            if (event !== null) {
-                this.internalDates = [...event];
-            }
+        internalHandler(event) {
+        
+            console.log('prevent: ',event);
         },
-
         close(payload) {
   
             let parentEl = document.querySelector('body');
@@ -257,6 +276,9 @@ export default {
                 })
             }
             this.openPredifinedModal = !this.openPredifinedModal; 
+            // this.multiDates = false;
+            // this.selectedPredifinedOption = 'notrepeat';
+
         },
 
         submit() {
@@ -269,22 +291,32 @@ export default {
 
             let startDate = this.selectedDates[this.selectedDates.length - 1];
 
+            // console.log(event);
+
             switch (event.target.value) {
 
                 case 'notrepeat':
-
+                    // this.selectedDates = this.oldSelectedDates;
                     this.endDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+                    this.displaySelectedDates = [...this.selectedDates];
 
                     this.close({id: 'predifined-select-modal', backdrop: 'custom-modal-backdrop-0', bodyOverflow: 'body-overflow'});
                     break;
 
                 case 'daily':
+
+                    this.multiDates = true;
                 
                     this.endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, startDate.getDate());
 
                     newDates = this.calculateDates(1, this.selectedDates[0], this.endDate, 1, 'day');
 
-                    this.selectedDates = [...newDates];
+                    // this.oldSelectedDates = JSON.parse(JSON.stringify(newDates));
+                    // this.oldSelectedDates = this.oldSelectedDates.map(el => new Date(el));
+
+                    // this.oldSelectedDates = JSON.parse(JSON.stringify(newDates));
+                    this.displaySelectedDates = newDates;
+                    // this.updatedSelect = true;
 
                     this.close({id: 'predifined-select-modal', backdrop: 'custom-modal-backdrop-0', bodyOverflow: 'body-overflow'});
                     break;
@@ -321,9 +353,9 @@ export default {
             y.setFullYear(y.getFullYear() + 1 * index * period);
             return y;
         },
-        // daysInMonth(month, year) {
-        //     return new Date(year, month, 0).getDate();
-        // },
+        daysInMonth(month, year) {
+            return new Date(year, month, 0).getDate();
+        },
         getDatesOfSelectedDays(selectedDays, weekDays) {
             const needDays = [];
             for (const selectedDay of selectedDays) {
@@ -333,49 +365,65 @@ export default {
         },
         selectDate(event) {
 
+            this.selectedDates = [];
             this.selectedDays = [];
+
+            this.displaySelectedDates = [];
             this.selectedPredifinedOption = "choose";
-            let dates = [];
+            
+            // this.oldSelectedDates = JSON.parse(JSON.stringify(event));
+            // this.oldSelectedDates = this.oldSelectedDates.map(el => new Date(el));
 
-            if (event === null) {
+            // console.log('old: ', this.oldSelectedDates);
+            // console.log('event: ', event);
 
-                this.selectedDates = [...this.selectedDates];
 
-            }
 
             if (event !== null) {
 
-                if (event.length > 2) {
+                console.log('event not empty', event);
 
-                    if (event.length - this.internalDates.length === 1) {
+                // if (!this.oldSelectedDates.length) {
+                //     this.oldSelectedDates = this.selectedDates;
+                // }
 
-                        this.selectedDates = [event[event.length-1]];
+                // console.log("event : ", event);
+                // console.log("selected date: ", this.selectedDates);
+                // update selected date
 
-                    } else {
-                        dates = this.internalDates.filter(date => {
-                                return !event.includes(date);
-                            });
-                        this.selectedDates = [...dates];
+                // if (!this.selectedDates.length) {
+                    // this.selectedDates = event;
+                // }
+
+                // if (event.length > 1) {
+                    
+                // }
+                
+
+                // if (event[0].toISOString() === this.selectedDates[0].toISOString()) {
+                //     alert(event, this.selectedDates[0]);
+                // }
+
+                // this.selectedDates.push(...event);
+                this.selectedDates.push(event);
+                // this.selectedDates = [...event];
+
+                
+                
+                // const temp = [...new Set(this.selectedDates.map(el => el.toISOString()))];
+                // this.selectedDates = [...temp.map(el => new Date(el))];
+
+                this.selectedDays = this.selectedDates.map(date => new Date(date).getDay());
+                this.selectedDays = [...new Set(this.selectedDays)];
+                // init week days with first selected dates
+                for (let i = 0; i < this.daysInWeek; i++) {
+                    for (const days of this.weekDays) {
+                        if (days.id === new Date(new Date(new Date(this.selectedDates[0]).getTime() + i * 86400000).toDateString()).getDay()) {
+                            days.date = new Date(new Date(new Date(this.selectedDates[0]).getTime() + i * 86400000).toDateString());
+                        }
                     }
-
-                } else {
-
-                    this.selectedDates = [event[event.length-1]];
-
                 }
-
             }  
-
-            this.selectedDays = this.selectedDates.map(date => new Date(date).getDay());
-            this.selectedDays = [...new Set(this.selectedDays)];
-            // init week days with first selected dates
-            for (let i = 0; i < this.daysInWeek; i++) {
-                for (const days of this.weekDays) {
-                    if (days.id === new Date(new Date(this.selectedDates[0].getTime() + i * 86400000).toDateString()).getDay()) {
-                        days.date = new Date(new Date(this.selectedDates[0].getTime() + i * 86400000).toDateString());
-                    }
-                }
-            }
 
             this.openPredifinedModal = true;
 
@@ -426,7 +474,7 @@ export default {
             // // init deadline, start, end
             let newDates = [];
             let deadline = 0;
-            // let newEnd = 0;
+            let newEnd = 0;
             let mainInterval;
             let start = new Date(new Date(date).toDateString());
             let end = new Date(new Date(endDate).toDateString());
@@ -435,12 +483,12 @@ export default {
                 case "day":
 
                     deadline = Math.ceil(end - start) / this.dayInMiliseconds;
-                    // newEnd = end;
+                    newEnd = end;
                     mainInterval = Math.round(deadline / period);
 
                     for (let i = 0; i < mainInterval; i++) {
                         const newDate = new Date(start.getTime() + i * this.dayInMiliseconds * multiplier * period);
-                        if (newDate < end.getTime()) {
+                        if (newDate < newEnd.getTime()) {
                             newDates.push(new Date(newDate));
                         }
                     }
@@ -449,12 +497,12 @@ export default {
                 case "week":
 
                     deadline = Math.ceil(end - start) / this.dayInMiliseconds;
-                    // newEnd = end;
+                    newEnd = end;
                     mainInterval = Math.round(deadline / (period * multiplier));
 
                     for (let i = 0; i < mainInterval; i++) {
                         const newDate = new Date(start.getTime() + i * this.dayInMiliseconds * multiplier * period);
-                        if (newDate < end.getTime()) {
+                        if (newDate < newEnd.getTime()) {
                             newDates.push(new Date(newDate));
                         }
                     }
@@ -463,12 +511,12 @@ export default {
                 case "month":
 
                     deadline = Math.ceil(end.getMonth() - start.getMonth() + 12 * (end.getFullYear() - start.getFullYear()));
-                    // newEnd = end;
+                    newEnd = end;
                     mainInterval = Math.ceil(deadline / period);
 
                     for (let i = 0; i < mainInterval; i++) {
                         const newDate = this.plusMonth(date, i, period);
-                        if (new Date(newDate).getTime() < new Date(end).getTime()) {
+                        if (new Date(newDate).getTime() < new Date(newEnd).getTime()) {
                             newDates.push(newDate);
                         }
                     }
@@ -477,12 +525,12 @@ export default {
                 case "year":
 
                     deadline = end.getFullYear() - start.getFullYear();
-                    // newEnd = end;
+                    newEnd = end;
                     mainInterval = Math.ceil(deadline / period);
 
                     for (let i = 0; i < mainInterval; i++) {
                         const newDate = this.plusYear(date, i, period);
-                        if (new Date(newDate).getTime() < new Date(end).getTime()) {
+                        if (new Date(newDate).getTime() < new Date(newEnd).getTime()) {
                             newDates.push(newDate);
                         }
                     }
@@ -539,18 +587,18 @@ export default {
             }
 
             selectedDatesTemp = [...new Set(selectedDatesTemp.map(el => el.toISOString()))];
-            this.selectedDates = [...selectedDatesTemp.map(el => new Date(el))];
+            this.displaySelectedDates = [...selectedDatesTemp.map(el => new Date(el))];
         },
     },
   
     mounted() {
 
-        // for (let i = 0; i < this.monthsInYear; i++) {
-        //     this.daysInMonths.push({
-        //         month: this.months[i],
-        //         days: this.daysInMonth(i + 1, this.currentYear)
-        //     });
-        // }
+        for (let i = 0; i < this.monthsInYear; i++) {
+            this.daysInMonths.push({
+                month: this.months[i],
+                days: this.daysInMonth(i + 1, this.currentYear)
+            });
+        }
 
         if (this.selectedPeriodType === "day") {
             this.endDate = new Date(new Date(this.currentYear, this.currentMonth + 1, this.currentDate).toDateString());

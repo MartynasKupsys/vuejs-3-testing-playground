@@ -15,46 +15,50 @@
     <ModalComponent :id-data="'picker-frequency'" :modal-title="'Pasirinkite kelionės dažnumą'">
       <template #body-content>
         <div class="modal-calendar-container d-flex flex-column align-items-center">
-            <div class="modal-calendar-container d-flex flex-row">
-                <div id="date-picker-date-1">
-                    <!-- <template v-if="multiDates">
-                        <DatepickerComponent
-                            monthNameFormat="long"
-                            id="picker-main"
-                            ref="datepickerMain"
-                            :locale="locale"
-                            inline
-                            auto-apply
-                            :multiDates="true"
-                            :enableTimePicker="false"
-                            :modelValue="displaySelectedDates">
-                        </DatepickerComponent>
-                    </template>
-                    <template v-else> -->
-                        <DatepickerComponent
-                            monthNameFormat="long"
-                            id="picker-main"
-                            ref="datepickerMain"
-                            :locale="locale"
-                            inline
-                            auto-apply
-                            :multi-dates="true"
-                            :enableTimePicker="false"
-                            :modelValue="selectedDates" @update:modelValue="selectDate($event)"
-                            @internalModelChange="internalModelChange($event)">
-                        </DatepickerComponent>
-                    <!-- </template> -->
-                    
-                </div>
-            </div>
-                    <div class="col-5">
-                        <ButtonComponent @click="submit" class="order-form-submit-button m-0 w-100">
-                            <template #btnContent>
-                                Select Date
-                            </template>
-                        </ButtonComponent>
-                    </div>
-
+          <div id="date-picker-date-1">
+            <DatepickerComponent
+                monthNameFormat="long"
+                id="picker-main"
+                ref="datepickerMain"
+                :locale="locale"
+                inline
+                auto-apply
+                :multiDates="multiDates"
+                :enableTimePicker="false"
+                :modelValue="selectedDates" @update:modelValue="selectDate($event)">
+            </DatepickerComponent>
+            
+            <DatepickerComponent
+                monthNameFormat="long"
+                id="picker-main"
+                ref="datepickerMain"
+                :locale="locale"
+                inline
+                auto-apply
+                :multiDates="true"
+                :enableTimePicker="false"
+                v-model="displaySelectedDates">
+            </DatepickerComponent>
+            <!-- :modelValue="newSelectedDate" @update:modelValue="newValue => newSelectedDate = [newValue]" -->
+            <!-- auto-apply -->
+            <!-- :modelValue="selectedDates" @update:modelValue="selectDate($event)" -->
+            <!-- :multiDates="true" -->
+          </div>
+          <div class="col-5">
+            <ButtonComponent @click="submit" class="order-form-submit-button m-0 w-100">
+            <template #btnContent>
+                Select Date
+            </template>
+          </ButtonComponent>
+          </div>
+          <!-- <div class="col-5">
+            <ButtonComponent @click="selectDate(newSelectedDate)" class="order-form-submit-button m-0 w-100">
+            <template #btnContent>
+                Select Date
+            </template>
+          </ButtonComponent>
+          </div> -->
+          
         </div>
 
         <template v-if="openCustomModal">
@@ -113,15 +117,13 @@
                 </button>
             </div>
         </template>
-
       </template>
     </ModalComponent>
 
     <Teleport to="#modals">
         <div v-if="openPredifinedModal" class="position-absolute predifined-select-modal" id="predifined-select-modal">
-            <select :value="selectedPredifinedOption" @change.prevent="selectPredifinedOption($event)" class="container__selected">
-                <option :value="'choose'" disabled> Select a option</option>
-                <option :value="'notrepeat'">Does not reapeat</option>
+            <select :value="selectedPredifinedOption" @change="selectPredifinedOption($event)" class="container__selected">
+                <option :value="'notrepeat'" selected>Does not reapeat</option>
                 <option :value="'daily'">Daily</option>
                 <option :value="'weekly'">Weekly on (Wednesday)</option>
                 <option :value="'monthly'">Monthly on the (third Wednesday)</option>
@@ -155,17 +157,17 @@ export default {
         openPredifinedModal: false,
         openCustomModal: false, 
 
-        // ====== main selected data ======
-        selectedPredifinedOption: 'choose',
+        selectedPredifinedOption: 'notrepeat',
         locale: 'lt',
         period: 1,
         selectedPeriodType: "day",
         selectedDays: [],
         selectedDates: [],
         endDate: null,
-        // ================================
+        currentYearMonthDate: new Date(),
 
-        internalDates: [],
+        displaySelectedDates: [],
+        multiDates: false,
         currentYear: new Date().getFullYear(),
         currentMonth: new Date().getMonth(),
         currentDate: new Date().getDate(),
@@ -224,19 +226,30 @@ export default {
             "November",
             "December"
         ],
-        // daysInMonths: []
+        daysInMonths: []
 
       };
     },
 
+    //    watch: {
+    //     selectedDates: {
+    //         handler(newVal, oldVal) {
+    //             console.log("new: ", newVal);
+    //             console.log("old: ", oldVal);
+    //             // if (oldVal === null) {
+    //             //     this.primarySelectedDates = [...newVal];
+    //             // }
+    //             // else {
+    //             //     this.primarySelectedDates = [...oldVal];
+    //             // }
+    //             // const temp = [...new Set(this.selectedDates.map(el => el.toISOString()))];
+    //             // this.selectedDates = [...temp.map(el => new Date(el))];
+    //             // console.log('temp:', temp);
+    //         }
+    //     }
+    // },
+
     methods: {
-
-        internalModelChange(event) {
-            if (event !== null) {
-                this.internalDates = [...event];
-            }
-        },
-
         close(payload) {
   
             let parentEl = document.querySelector('body');
@@ -257,36 +270,32 @@ export default {
                 })
             }
             this.openPredifinedModal = !this.openPredifinedModal; 
+            // this.multiDates = false;
+            this.selectedPredifinedOption = 'notrepeat';
+
         },
+
+        
 
         submit() {
             console.log(this.selectedDates);
         },
 
         selectPredifinedOption(event) {
-            this.selectedPredifinedOption = [];
+            this.selectedPredifinedOption = event.target.value;
             let newDates = [];
-
-            let startDate = this.selectedDates[this.selectedDates.length - 1];
 
             switch (event.target.value) {
 
                 case 'notrepeat':
-
-                    this.endDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-
                     this.close({id: 'predifined-select-modal', backdrop: 'custom-modal-backdrop-0', bodyOverflow: 'body-overflow'});
                     break;
 
                 case 'daily':
-                
-                    this.endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, startDate.getDate());
-
+                    console.log(event.target.value);
                     newDates = this.calculateDates(1, this.selectedDates[0], this.endDate, 1, 'day');
-
-                    this.selectedDates = [...newDates];
-
-                    this.close({id: 'predifined-select-modal', backdrop: 'custom-modal-backdrop-0', bodyOverflow: 'body-overflow'});
+                    // this.multiDates = true;
+                    this.displaySelectedDates = newDates;
                     break;
 
                 case 'weekly':
@@ -308,8 +317,6 @@ export default {
                 default:
                     break;
             }
-
-            this.selectedPredifinedOption = event.target.value;
         },
         plusMonth(date, index, period) {
             let m = new Date(date);
@@ -321,9 +328,9 @@ export default {
             y.setFullYear(y.getFullYear() + 1 * index * period);
             return y;
         },
-        // daysInMonth(month, year) {
-        //     return new Date(year, month, 0).getDate();
-        // },
+        daysInMonth(month, year) {
+            return new Date(year, month, 0).getDate();
+        },
         getDatesOfSelectedDays(selectedDays, weekDays) {
             const needDays = [];
             for (const selectedDay of selectedDays) {
@@ -333,49 +340,31 @@ export default {
         },
         selectDate(event) {
 
+            this.selectedDates = [];
             this.selectedDays = [];
-            this.selectedPredifinedOption = "choose";
-            let dates = [];
-
-            if (event === null) {
-
-                this.selectedDates = [...this.selectedDates];
-
-            }
 
             if (event !== null) {
 
-                if (event.length > 2) {
+                console.log("event : ", event);
+                // push new dates
+                this.selectedDates.push(event);
+                console.log(event)
+                // this.primarySelectedDates.push(...event);
+                // this.selectedDates = [...this.selectedDates];
+                const temp = [...new Set(this.selectedDates.map(el => el.toISOString()))];
+                this.selectedDates = [...temp.map(el => new Date(el))];
 
-                    if (event.length - this.internalDates.length === 1) {
-
-                        this.selectedDates = [event[event.length-1]];
-
-                    } else {
-                        dates = this.internalDates.filter(date => {
-                                return !event.includes(date);
-                            });
-                        this.selectedDates = [...dates];
+                this.selectedDays = this.selectedDates.map(date => new Date(date).getDay());
+                this.selectedDays = [...new Set(this.selectedDays)];
+                // init week days with first selected dates
+                for (let i = 0; i < this.daysInWeek; i++) {
+                    for (const days of this.weekDays) {
+                        if (days.id === new Date(new Date(new Date(this.selectedDates[0]).getTime() + i * 86400000).toDateString()).getDay()) {
+                            days.date = new Date(new Date(new Date(this.selectedDates[0]).getTime() + i * 86400000).toDateString());
+                        }
                     }
-
-                } else {
-
-                    this.selectedDates = [event[event.length-1]];
-
                 }
-
             }  
-
-            this.selectedDays = this.selectedDates.map(date => new Date(date).getDay());
-            this.selectedDays = [...new Set(this.selectedDays)];
-            // init week days with first selected dates
-            for (let i = 0; i < this.daysInWeek; i++) {
-                for (const days of this.weekDays) {
-                    if (days.id === new Date(new Date(this.selectedDates[0].getTime() + i * 86400000).toDateString()).getDay()) {
-                        days.date = new Date(new Date(this.selectedDates[0].getTime() + i * 86400000).toDateString());
-                    }
-                }
-            }
 
             this.openPredifinedModal = true;
 
@@ -392,12 +381,10 @@ export default {
         },
         selectPeriodType(event) {
             let defaultEnd = "";
-            // let startDate = this.selectedDates[this.selectedDates.length - 1];
             switch (event.target.value) {
                 case "day":
 
                     defaultEnd = new Date(this.currentYear, this.currentMonth + 1, this.currentDate);
-                    // this.endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, startDate.getDate());
 
                     break;
                 case "week":
@@ -426,7 +413,7 @@ export default {
             // // init deadline, start, end
             let newDates = [];
             let deadline = 0;
-            // let newEnd = 0;
+            let newEnd = 0;
             let mainInterval;
             let start = new Date(new Date(date).toDateString());
             let end = new Date(new Date(endDate).toDateString());
@@ -435,12 +422,12 @@ export default {
                 case "day":
 
                     deadline = Math.ceil(end - start) / this.dayInMiliseconds;
-                    // newEnd = end;
+                    newEnd = end;
                     mainInterval = Math.round(deadline / period);
 
                     for (let i = 0; i < mainInterval; i++) {
                         const newDate = new Date(start.getTime() + i * this.dayInMiliseconds * multiplier * period);
-                        if (newDate < end.getTime()) {
+                        if (newDate < newEnd.getTime()) {
                             newDates.push(new Date(newDate));
                         }
                     }
@@ -449,12 +436,12 @@ export default {
                 case "week":
 
                     deadline = Math.ceil(end - start) / this.dayInMiliseconds;
-                    // newEnd = end;
+                    newEnd = end;
                     mainInterval = Math.round(deadline / (period * multiplier));
 
                     for (let i = 0; i < mainInterval; i++) {
                         const newDate = new Date(start.getTime() + i * this.dayInMiliseconds * multiplier * period);
-                        if (newDate < end.getTime()) {
+                        if (newDate < newEnd.getTime()) {
                             newDates.push(new Date(newDate));
                         }
                     }
@@ -463,12 +450,12 @@ export default {
                 case "month":
 
                     deadline = Math.ceil(end.getMonth() - start.getMonth() + 12 * (end.getFullYear() - start.getFullYear()));
-                    // newEnd = end;
+                    newEnd = end;
                     mainInterval = Math.ceil(deadline / period);
 
                     for (let i = 0; i < mainInterval; i++) {
                         const newDate = this.plusMonth(date, i, period);
-                        if (new Date(newDate).getTime() < new Date(end).getTime()) {
+                        if (new Date(newDate).getTime() < new Date(newEnd).getTime()) {
                             newDates.push(newDate);
                         }
                     }
@@ -477,12 +464,12 @@ export default {
                 case "year":
 
                     deadline = end.getFullYear() - start.getFullYear();
-                    // newEnd = end;
+                    newEnd = end;
                     mainInterval = Math.ceil(deadline / period);
 
                     for (let i = 0; i < mainInterval; i++) {
                         const newDate = this.plusYear(date, i, period);
-                        if (new Date(newDate).getTime() < new Date(end).getTime()) {
+                        if (new Date(newDate).getTime() < new Date(newEnd).getTime()) {
                             newDates.push(newDate);
                         }
                     }
@@ -539,18 +526,18 @@ export default {
             }
 
             selectedDatesTemp = [...new Set(selectedDatesTemp.map(el => el.toISOString()))];
-            this.selectedDates = [...selectedDatesTemp.map(el => new Date(el))];
+            this.displaySelectedDates = [...selectedDatesTemp.map(el => new Date(el))];
         },
     },
   
     mounted() {
 
-        // for (let i = 0; i < this.monthsInYear; i++) {
-        //     this.daysInMonths.push({
-        //         month: this.months[i],
-        //         days: this.daysInMonth(i + 1, this.currentYear)
-        //     });
-        // }
+        for (let i = 0; i < this.monthsInYear; i++) {
+            this.daysInMonths.push({
+                month: this.months[i],
+                days: this.daysInMonth(i + 1, this.currentYear)
+            });
+        }
 
         if (this.selectedPeriodType === "day") {
             this.endDate = new Date(new Date(this.currentYear, this.currentMonth + 1, this.currentDate).toDateString());
@@ -681,6 +668,9 @@ div.dp__calendar_header_separator {
   width: 40%;
 }
 
+.dp__month_year_col_nav:nth-child(1) {
+
+}
 .dp__month_year_col_nav:nth-child(4) {
   display: flex;
   //width: 100%;
